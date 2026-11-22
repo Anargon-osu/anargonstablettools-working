@@ -26,7 +26,7 @@ here on purpose, so no single file goes stale.
 - If two files disagree, the more recent revision wins. Say so in your PR description so your partner and the
   maintainers can settle it.
 
-Current model files: **`CLAUDE.md`** (history in `history/claude-rev*.md`; latest `claude-rev45.md`), **`CODEX.md`** (rev 36 audit, R37) and **`GEMINI.md`** (R45-rc5: the roadmap after R45).
+Current model files: **`CLAUDE.md`** (history in `history/claude-rev*.md`; latest `claude-pr1.md`), **`CODEX.md`** (rev 36 audit, R37) and **`GEMINI.md`** (R45-rc5: the roadmap after R45).
 Human contributors can start with `DOCS/CONTRIBUTING.md`; `DOCS/AUDIT.md` records the current release assessment.
 
 ---
@@ -54,14 +54,15 @@ Human contributors can start with `DOCS/CONTRIBUTING.md`; `DOCS/AUDIT.md` record
 | 44 | Claude Opus 5.5 | Anthropic | `CLAUDE.md`, `history/claude-rev44.md` | calibration made simpler (Anargon's spec): the LED marks each step's target (on within 7 mm of the middle, blinking while recording) through new USB strings in the measurement firmware; no-cursor warning; 4096 light touch; LED-worded detection limit; untimed slow lift; plain tablet-driver wording |
 | 45 | Claude Opus 5.5 | Anthropic | `CLAUDE.md`, `history/claude-rev45.md` | calibration levels (Fast Pass, Standard, Full); ALPI trained on the tablet, measuring the pick-up levels in the background; Frequency Hold and Coil Hold for ULTRA's still-pen noise; the bootloader's SysTick switched off; other mods' and this tool's builds set back to exact stock; hover stages that do not flap, a reach stage that keeps a tracked pen higher, Tilt Frame Skip; Misc. Optimizations (Switch Match, Window Scale, Coil Linearization, Dynamic Anti-Chatter); Measurement Tools; renamed Anargon's Tablet Tools, `DOCS/porting-guide.md` |
 | 45-rc5 | Gemini Hydrogen 4 (xHigh) | Google | `GEMINI.md`, `DOCS/roadmap-after-r45.md` | the roadmap of pull requests after R45 (relayed by Anargon): source-level cold-read and coil-wave calibration, a 3 + 3 line fast stage with ALPI, gd32emu clock modelling, an in-spec 96 / 108 MHz option, more than 1000 positions per second with batched USB and an OpenTabletDriver plugin; with its warnings against a +0.4 ms filter, mid-scan processing and 120 MHz |
+| PR1 (R46, V1.1) | Claude Opus 5.5 | Anthropic | `CLAUDE.md`, `history/claude-pr1.md` | Coil Gains in Misc. Optimizations (ULTRA): **found that slanted lines bend because each coil reads the pen a little stronger or weaker than the next** (X 1.2 %, Y 0.7 %) and evened them out before the position, at 58.9 % of the measured difference; on the tablet the error that repeats on every pass fell from 0.021 to 0.009 mm |
 
 All of these keep their findings in **`CLAUDE.md`** (one file per model family); the `history/` files are the full
 per-revision record each Claude session wrote, including its own corrections.
 
 **When you contribute:** add a row (revisions, your model name and maker, your notes file, what you did), create or
-extend your own notes file, and add a `history/<model>-rev<from>-<to>.md` for the revisions you delivered.
+extend your own notes file, and add a `history/<model>-rev<from>-<to>.md` for the revisions you delivered (after R45: one `history/<model>-pr<X>.md` per pull request).
 **Revision names:** up to R45 they count deliveries across the whole project (Anargon's numbering). After R45 a
-revision is named after its pull request, `PR #X` (section 4); use that name in your row and history file. If you are unsure of your exact model version, say so instead of guessing. Human
+revision is named after its pull request, `PR #X` (section 4); use that name in your row and history file. Each merge moves the project one revision on: PR1 merged is R46, the next merge R47, and so on. Planned releases: V1.0 = R45, V1.1 = R46 (no release candidates), V1.2 = R47 to R56 (low-level changes and improvements across the project; where it ends depends on their scope). If you are unsure of your exact model version, say so instead of guessing. Human
 contributors are welcome to add themselves too.
 
 ---
@@ -267,7 +268,7 @@ worked with a microcontroller. Anargon's words: "semi complex and verbose explan
 **Every revision after R45 comes as a pull request from a GitHub account linked to a person** (Anargon: for
 identity). An AI model works through its partner's account: when you start, look up that account's pull requests in
 `Anargon-osu/anargons-tablet-tools` and the revisions already named in `history/`, and name your revision `PR #X`,
-where X is the number of the pull request it goes into (for example `history/claude-pr12.md`). Do not push, post or
+where X is the number of the pull request it goes into (for example `history/claude-pr12.md`); merged, it becomes the next revision (PR1 -> R46). Do not push, post or
 open pull requests yourself unless your partner asks you to.
 
 A good PR description for this project says:
@@ -297,4 +298,4 @@ A good PR description for this project says:
 
 R37 keeps these repositories separate. Each project has its own root README.md and AGENTS.md; CLAUDE.md and CODEX.md remain root model entrypoints, history/ remains the durable revision record, and other documentation is under DOCS/. See [model provenance](DOCS/model-provenance.md) for the confirmed R36 and R37 model/effort record.
 
-This is a rolling release. Revision labels such as R37 identify project deliveries up to R45; after R45 a revision is named after its pull request (`PR #X`, section 4). Do not introduce semantic-version renumbering. Every future model must read all root model files and the latest files under the tablet repository's root history/ before changing anything. Add a complete history entry for each delivery so future work does not depend on persistent chat context.
+This is a rolling release. Revision labels such as R37 identify project deliveries up to R45; after R45 a revision is named after its pull request (`PR #X`, section 4). Each merge is the next revision (PR1 merged = R46, then R47, ...); release names group revisions (V1.0 = R45, V1.1 = R46, V1.2 = R47 to R56) and never renumber them. Every future model must read all root model files and the latest files under the tablet repository's root history/ before changing anything. Add a complete history entry for each delivery so future work does not depend on persistent chat context.

@@ -66,7 +66,9 @@ namespace AnargonsTabletTools
         // ws_x / ws_y in place of the stock routine's two calls; stockFn = the stock routine
         public static void Emit(Asm a, int tab, int stockFn) { Emit(a, tab, stockFn, false); }
         // lab: the Filter Arranger build, where a RAM flag switches the correction off (atf_lab.cs)
-        public static void Emit(Asm a, int tab, int stockFn, bool lab)
+        public static void Emit(Asm a, int tab, int stockFn, bool lab) { Emit(a, tab, stockFn, lab, 0, false); }
+        // cgtab: Coil Gains' table (atf_coilgain.cs), 0 = none; full: 12-bit Readings (its floor)
+        public static void Emit(Asm a, int tab, int stockFn, bool lab, int cgtab, bool full)
         {
             for (int q = 0; q < 2; q++)
             {
@@ -77,6 +79,7 @@ namespace AnargonsTabletTools
                 a.LdrSp("r4", 32); a.StrSp("r4", 0);                                   // line centre+2
                 a.LdrSp("r4", 36); a.StrSp("r4", 4);                                   // centre coil
                 a.LdrSp("r4", 40); a.StrSp("r4", 8);                                   // 1018
+                if (cgtab != 0) CoilGains.EmitScale(a, cgtab, q, full);              // each coil's gain matched
                 a.BlA(stockFn);
                 a.AddSp(16);
                 a.Mov32("r6", tab + 2 * NK * q);

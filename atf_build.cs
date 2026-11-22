@@ -396,10 +396,10 @@ namespace AnargonsTabletTools
             // R45-rc3 (Anargon: "its nice to disclose all firmware"): the rc2 SysTick fix as its own setting
             new Setting("systick", "Bootloader Timer Off", "scan", true, "TO", "Switches off a 1 ms timer that the tablet's bootloader leaves running; the firmware never uses it. It paused the scan every 1 ms and gave bursts of shake at ULTRA, worst between two coils (up to 0.2 mm on Anargon's tablet).|None found. Off = stock behaviour."),
             // R45 (Anargon, 2026-11-17: the filter order tested live, then "these all get bundled as part of a single option
-            // called 'Misc. Optimizations'"): one switch for the four position fixes below (MISC_KEYS); the screens show only
+            // called 'Misc. Optimizations'"): one switch for the position fixes below (MISC_KEYS; Coil Gains joined 2026-11-22); the screens show only
             // this one. Order in the firmware: Switch Match > Coil Linearization (table B) > ALPI > Dynamic Anti-Chatter,
             // Window Scale inside the stock position routine (experiments/precision/RESULTS.md)
-            new Setting("misc", "Misc. Optimizations", "corr", true, "MO", "Four position fixes, all on together. Switch Match: no cursor step where the tablet changes which coils it reads. Window Scale (ULTRA): no step at each coil switch. Coil Linearization: an even cursor across every coil (a table learned on Anargon's ruler lines). Dynamic Anti-Chatter: pulls back a reading that jumps off the pen's line. Only past positions are used, nothing ahead of the pen. On Anargon's tablet (ULTRA, ALPI, along a ruler): 0.02-0.04 mm of error left along an axis, 0.06-0.09 mm on a slanted line.|Up to 0.4 ms of delay, only on the frames Dynamic Anti-Chatter pulls back (about 0.1 ms on average). Measured on one tablet and pen (Anargon's); another tablet may gain less."),
+            new Setting("misc", "Misc. Optimizations", "corr", true, "MO", "Five position fixes, all on together. Switch Match: no cursor step where the tablet changes which coils it reads. Window Scale (ULTRA): no step at each coil switch. Coil Gains (ULTRA): evens out how strongly each coil reads, so slanted lines bend less. Coil Linearization: an even cursor across every coil (a table learned on Anargon's ruler lines). Dynamic Anti-Chatter: pulls back a reading that jumps off the pen's line. Only past positions are used, nothing ahead of the pen. On Anargon's tablet (ULTRA, ALPI, along a ruler): 0.02-0.04 mm of error left along an axis, 0.06-0.09 mm on a slanted line.|Up to 0.4 ms of delay, only on the frames Dynamic Anti-Chatter pulls back (about 0.1 ms on average). Measured on one tablet and pen (Anargon's); another tablet may gain less."),
             // R45-rc3 (Anargon's low hover shake): see Sched.Patch, "Tilt Frame Skip"
             new Setting("smatch", "Switch Match", "corr", true, "SWM", "When the tablet changes which coils it reads (slanted lines: 0.24 mm steps on Anargon's tablet) or how long it reads (hover height: up to 0.67 mm), the new reading is matched to the line the pen was following, and the match fades out over half a coil. Uses only past positions, nothing ahead of the pen.|Only while the pen moves (15 mm/s or more) and not right after another coil switch, so a still pen is left alone. A fast flick or a sharp turn right at a switch is left as it is."),
             // R45-rc5 (Anargon: "Prevents chatter by only applying smoothing on detection of chatter"): see atf_antichatter.cs
@@ -408,6 +408,8 @@ namespace AnargonsTabletTools
             new Setting("clin", "Coil Linearization", "corr", true, "CL", "Corrects the position inside each coil with a fixed table, so the cursor moves evenly across every coil. On Anargon's tablet along a ruler, the error that repeats at every coil fell from 0.20-0.26 to 0.08-0.15 mm (X) and from 0.08-0.14 to 0.05-0.07 mm (Y). No delay.|Learned on one tablet and pen (Anargon's, at ULTRA); another tablet may gain less."),
             // R45-rc4 (2) (Anargon: "X will not report position consistently"): see atf_winscale.cs
             new Setting("wscale", "Window Scale", "corr", true, "WS", "Corrects the position inside each group of coils the tablet reads, by pressure: the readings stretch the position there, so the cursor stepped at every coil switch (X 0.24 mm on Anargon's tablet; 0.08 mm with it, 0.04 mm with Switch Match too, offline). No delay.|Measured on one tablet and pen (Anargon's). ULTRA only, at its fastest hover step. Not with Multi-coil Read."),
+            // PR1 (Anargon, 2026-11-22: the slanted-line error "That goes into misc options."): see atf_coilgain.cs
+            new Setting("cgain", "Coil Gains", "corr", true, "CG", "Evens out how strongly each coil reads before the position is worked out. Some coils read 1-2 % stronger or weaker than the next one, which bends a slanted line. Set to 58.9 % of the measured difference: on every recorded ruler session of Anargon's tablet that took 9-22 % off the slanted-line error (offline); on the tablet, the error that repeats on every pass fell from 0.021 to 0.009 mm (at 60 %). No delay.|Measured on one tablet and pen (Anargon's); how much of the difference showed changed between sessions there (0.5-1.5 x). ULTRA only, with Window Scale. Not with Multi-coil Read."),
             new Setting("tiltskip", "Tilt Frame Skip", "scan", true, "TS", "4 frames in every 16 also measure tilt. While the pen hovers close, their positions came out 0.2-0.45 mm off on Anargon's tablet (a shake about 60 times a second). Hovering close, those frames now read the position like the others.|Tilt keeps its last value while the pen hovers close; touching, Steady Hover and Reach Stage measure it as before. Checked in the digital twin; not measured on a tablet yet."),
             new Setting("interp", "Position Interpolation", "latency", true, "PI", "Averages the last 3-5 positions (stock), so the cursor is steadier.|Adds cursor delay (measured, below)."),
             new Setting("interp2", "Aggressive Position Interpolation", "latency", false, "AI", "Averages more positions: 16 while still, 8 while slow, 4 while fast.|More cursor delay, most when moving slowly. Needs Position Interpolation."),
@@ -472,9 +474,9 @@ namespace AnargonsTabletTools
         // trackers (atf_apipr.cs); 0 = none
         public static readonly string[] APIP_KEYS = new string[] { "apip", "apipr2", "apipr3", "apipr4" };
         // R45: the settings Misc. Optimizations switches; not shown on their own (Cli.ShowGroup), still on the command line
-        public static readonly string[] MISC_KEYS = new string[] { "smatch", "wscale", "clin", "dac" };
+        public static readonly string[] MISC_KEYS = new string[] { "smatch", "wscale", "cgain", "clin", "dac" };
         public static bool InMisc(string key) { for (int i = 0; i < MISC_KEYS.Length; i++) if (P.Eq(MISC_KEYS[i], key)) return true; return false; }
-        // Misc. Optimizations on or off: its four settings follow
+        // Misc. Optimizations on or off: its settings follow
         public static void SetMisc(bool[] st, bool on) { st[SetIndex("misc")] = on; for (int i = 0; i < MISC_KEYS.Length; i++) st[SetIndex(MISC_KEYS[i])] = on; }
         public const string APIP_NOTE = "Pick one. Each learns your tablet's noise in Full calibration (step 4), or uses Anargon's training, and replaces Position Interpolation, Movement Smoothing and Jump Rejection. None adds cursor delay of its own (simulation). On a real tablet the Tracker is the steadiest.";
         public static int ApipKindOf(string key) { for (int i = 0; i < APIP_KEYS.Length; i++) if (P.Eq(APIP_KEYS[i], key)) return i == 0 ? 1 : i + 1; return 0; }
@@ -680,6 +682,11 @@ namespace AnargonsTabletTools
             if (P.Eq(key, "wscale") && !paced) return "not used by " + name;
             if (P.Eq(key, "wscale") && lv.period != 1000) return "measured at ULTRA only";
             if (P.Eq(key, "wscale") && st != null && On(st, "multicoil")) return "replaced by Multi-coil Read";
+            // Coil Gains runs inside Window Scale's wrapper of the stock position routine (atf_coilgain.cs)
+            if (P.Eq(key, "cgain") && !paced) return "not used by " + name;
+            if (P.Eq(key, "cgain") && lv.period != 1000) return "measured at ULTRA only";
+            if (P.Eq(key, "cgain") && st != null && On(st, "multicoil")) return "replaced by Multi-coil Read";
+            if (P.Eq(key, "cgain") && st != null && !On(st, "wscale")) return "needs Window Scale";
             if (P.Eq(key, "multicoil") && (lv.period <= 0 || lv.period > 2000)) return "only 500 reports per second and faster";
             if (P.Eq(key, "multicoil") && !MultiFits(lv, st)) return "does not fit " + name + "'s " + F.Fx(lv.period / 1000.0, 1) + " ms frame";
             return null;
@@ -754,8 +761,8 @@ namespace AnargonsTabletTools
         }
         static string OptionWord(string key)
         {
-            string[] k = new string[] { "odd", "smoothing", "cal", "accp", "fullres", "fhold", "chold", "systick", "tiltskip", "misc", "smatch", "wscale", "dac", "clin", "interp", "interp2", "apip", "apipr2", "apipr3", "apipr4", "boost", "reach", "longrange", "multicoil", "volatile", "bootloader", "blcounter" };
-            string[] w = new string[] { "JUMP-REJECTION", "SMOOTHING", "FREQ-TUNING", "ACCURATE-PRESSURE", "12BIT", "FREQ-HOLD", "COIL-HOLD", "TIMER-OFF", "TILT-SKIP", "MISC-OPTIMIZATIONS", "SWITCH-MATCH", "WINDOW-SCALE", "DYNAMIC-ANTI-CHATTER", "COIL-LINEARIZATION", "INTERP", "AGGRESSIVE-INTERP", "ALPI-TRACKER", "ALPI-ROBUST2", "ALPI-ROBUST3", "ALPI-ROBUST4", "STEADY-HOVER", "REACH", "LONG-RANGE", "MULTICOIL", "VOLATILE", "BOOTLOADER-CHANGES", "BOOTLOADER-COUNTER" };
+            string[] k = new string[] { "odd", "smoothing", "cal", "accp", "fullres", "fhold", "chold", "systick", "tiltskip", "misc", "smatch", "wscale", "dac", "clin", "cgain", "interp", "interp2", "apip", "apipr2", "apipr3", "apipr4", "boost", "reach", "longrange", "multicoil", "volatile", "bootloader", "blcounter" };
+            string[] w = new string[] { "JUMP-REJECTION", "SMOOTHING", "FREQ-TUNING", "ACCURATE-PRESSURE", "12BIT", "FREQ-HOLD", "COIL-HOLD", "TIMER-OFF", "TILT-SKIP", "MISC-OPTIMIZATIONS", "SWITCH-MATCH", "WINDOW-SCALE", "DYNAMIC-ANTI-CHATTER", "COIL-LINEARIZATION", "COIL-GAINS","INTERP", "AGGRESSIVE-INTERP", "ALPI-TRACKER", "ALPI-ROBUST2", "ALPI-ROBUST3", "ALPI-ROBUST4", "STEADY-HOVER", "REACH", "LONG-RANGE", "MULTICOIL", "VOLATILE", "BOOTLOADER-CHANGES", "BOOTLOADER-COUNTER" };
             for (int i = 0; i < k.Length; i++) if (P.Eq(k[i], key)) return w[i];
             return IsPackageOption(key) ? "PACKAGE-OPTION=" + P.Upper(key) : P.Upper(key);
         }
@@ -1478,7 +1485,7 @@ namespace AnargonsTabletTools
                 cfg.enterUp1 = StepUpLevel(enter, burst, cfg.nModes > 1 ? cfg.modes[1].burst : burst);
                 cfg.enterUp2 = StepUpLevel(enter, burst, cfg.nModes > 2 ? cfg.modes[2].burst : cfg.nModes > 1 ? cfg.modes[1].burst : burst);
                 cfg.holdHover = cfg.boost && period <= 1250;      // 800/1000 Hz: acquire into boost so a weak hover holds
-                cfg.longSearch = On(on, "longrange"); cfg.multiCoil = mu; cfg.fullRes = fr; cfg.freqHold = On(on, "fhold"); cfg.systickOff = On(on, "systick"); cfg.tiltSkip = On(on, "tiltskip"); cfg.switchMatch = On(on, "smatch"); cfg.winScale = On(on, "wscale"); cfg.antiChatter = On(on, "dac"); cfg.coilLin = On(on, "clin"); cfg.coilHold = On(on, "chold"); cfg.telemetry = o.telemetry; cfg.lineRec = o.telemetry && o.lineRec && lv.period > 0;
+                cfg.longSearch = On(on, "longrange"); cfg.multiCoil = mu; cfg.fullRes = fr; cfg.freqHold = On(on, "fhold"); cfg.systickOff = On(on, "systick"); cfg.tiltSkip = On(on, "tiltskip"); cfg.switchMatch = On(on, "smatch"); cfg.winScale = On(on, "wscale"); cfg.antiChatter = On(on, "dac"); cfg.coilLin = On(on, "clin"); cfg.coilGains = On(on, "cgain"); cfg.coilHold = On(on, "chold"); cfg.telemetry = o.telemetry; cfg.lineRec = o.telemetry && o.lineRec && lv.period > 0;
                 cfg.apip = apm; cfg.apipTrain = o.apipTrain;
                 cfg.apipK = apm != null && apk >= 2 ? ApipRobust.Constants(apk, lv) : null;
                 cfg.counter = On(on, "bootloader") && !o.cleanup;

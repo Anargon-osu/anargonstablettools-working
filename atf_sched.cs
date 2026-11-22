@@ -26,6 +26,7 @@ namespace AnargonsTabletTools
         public bool antiChatter;             // R45-rc5 setting "Dynamic Anti-Chatter" (atf_antichatter.cs): a 2-frame average, at most +0.4 ms, only on frames whose noise is over 0.10 mm
         public bool coilLin;                 // R45-rc5 setting "Coil Linearization" (atf_coillin.cs, default on since rc5 (1)): a fixed correction of the final position by its phase inside the coil, no history
         public bool winScale;                // R45-rc4 (2) setting "Window Scale" (atf_winscale.cs): the position inside a coil window corrected for pressure (not with Multi-coil Read)
+        public bool coilGains;               // 2026-11-22 setting "Coil Gains" (atf_coilgain.cs): each coil's reading strength evened out inside Window Scale's wrapper
         public bool lab;                     // Filter Arranger build (atf_lab.cs): every position filter built in, their order from RAM
         public int labDefault, labDefaultFlags;   // its order and flags when the PC set none (Lab.DefaultOrder: the normal build's)
         public ApipModel apip = null;        // R44: Algorithmic Position Interpolation (atf_apip.cs): the trained model
@@ -494,6 +495,9 @@ namespace AnargonsTabletTools
             int wstab = 0;
             if (cfg.winScale && !cfg.multiCoil)
                 wstab = im.AllocData(WindowScale.Table(), "Window Scale: the stretch of the position inside a coil window per pressure, X then Y, 9 knots each (Q12, measured rc4 (2))");
+            int cgtab = 0;
+            if (cfg.coilGains && wstab != 0 && !cfg.lab)
+                cgtab = im.AllocData(CoilGains.Table(), "Coil Gains: 4096 / each coil's gain at " + F.Fx(CoilGains.STRENGTH / 10.0, 1) + " % of the measured difference, X then Y, 40 slots each (coil k at slot k + 2; Q12, measured on the R43 strokes)");
             int aptab = 0;
             if (cfg.apip != null)
                 aptab = im.AllocData(Apip.Table(cfg.apip, cfg.apipK), cfg.apipK == null
@@ -1106,7 +1110,7 @@ namespace AnargonsTabletTools
             if (cfg.multiCoil)
                 MultiCoil.Emit(a, mctab, Fw.A(0x08005432), XBUF, YBUF, S_ADDR, AGC, cfg.fullRes);
             if (wstab != 0)
-                WindowScale.Emit(a, wstab, Fw.A(0x08005432), cfg.lab);
+                WindowScale.Emit(a, wstab, Fw.A(0x08005432), cfg.lab, cgtab, cfg.fullRes);
             // ---- small helpers
             a.Label("setmode");
             if (boost)
@@ -1608,7 +1612,7 @@ namespace AnargonsTabletTools
             string stages = "fast" + (boost ? " + boost" : "") + (reach ? " + reach" : "");
             im.EndAlloc(a, (hyb ? "SOF-locked (ladder steps between whole frames timer-paced)" : sof ? "SOF-locked" : "timer-paced") + " scheduler: every " + F.Str(periodUs) + " us, hover stages " + stages
                 + ", tilt over " + F.Str(phases.Length) + "/" + F.Str(tiltEvery) + " frames, sweep " + (sb != 0 ? "chunk " + F.Str(chunk) : "full")
-                + (longS ? ", long-range search" : "") + (cfg.multiCoil ? ", Multi-coil Read" : "") + (cfg.freqHold ? ", Frequency Hold" : "") + (cfg.coilHold ? ", Coil Hold" : "") + (cfg.tiltSkip ? ", Tilt Frame Skip" : "") + (cfg.switchMatch ? ", Switch Match" : "") + (wstab != 0 ? ", Window Scale" : "") + (cfg.coilLin ? ", Coil Linearization" : "") + (cfg.antiChatter ? ", Dynamic Anti-Chatter" : "") + (cfg.apip != null ? (cfg.apipK != null ? ", ALPI robust " + F.Str(cfg.apipK[ApipRobust.K_M]) : ", ALPI") : "") + (cfg.apipTrain ? ", ALPI TRAINING" : "") + (cfg.lab ? ", FILTER ARRANGER (lab build)" : "") + (cfg.telemetry ? ", CALIBRATION TELEMETRY" : "") + (cfg.counter ? ", flash counter" : "") + (cfg.blCounter ? ", BOOTLOADER COUNTER" : "") + (cfg.cleanup ? (cfg.keepCount ? ", BOOTLOADER COUNTER REMOVAL" : ", RETURN TO STOCK") : "") + (cfg.systickOff ? ", bootloader's SysTick off" : ""));
+                + (longS ? ", long-range search" : "") + (cfg.multiCoil ? ", Multi-coil Read" : "") + (cfg.freqHold ? ", Frequency Hold" : "") + (cfg.coilHold ? ", Coil Hold" : "") + (cfg.tiltSkip ? ", Tilt Frame Skip" : "") + (cfg.switchMatch ? ", Switch Match" : "") + (wstab != 0 ? ", Window Scale" : "") + (cgtab != 0 ? ", Coil Gains" : "") + (cfg.coilLin ? ", Coil Linearization" : "") + (cfg.antiChatter ? ", Dynamic Anti-Chatter" : "") + (cfg.apip != null ? (cfg.apipK != null ? ", ALPI robust " + F.Str(cfg.apipK[ApipRobust.K_M]) : ", ALPI") : "") + (cfg.apipTrain ? ", ALPI TRAINING" : "") + (cfg.lab ? ", FILTER ARRANGER (lab build)" : "") + (cfg.telemetry ? ", CALIBRATION TELEMETRY" : "") + (cfg.counter ? ", flash counter" : "") + (cfg.blCounter ? ", BOOTLOADER COUNTER" : "") + (cfg.cleanup ? (cfg.keepCount ? ", BOOTLOADER COUNTER REMOVAL" : ", RETURN TO STOCK") : "") + (cfg.systickOff ? ", bootloader's SysTick off" : ""));
             StrIntMap L = a.labels;
             if (cfg.lab) Lab.labels = L;       // the lab build's twin tests (experiments/precision/labstep.cs) call its routines
             if (cfg.apip != null)

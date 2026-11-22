@@ -133,6 +133,13 @@ straight to the fast stage when its level reads strong (`Sched`, label `m_nc`).
   stock routine 0x08005432 and, while VB+0 = 0, add `(r - centre x 1018) x k >> 12`, k from 9 Q12 knots per axis
   over PRESSURE+6 (table in flash, `WindowScale.Table`). C# copy `WindowScale.Apply`; the twin's position-call check
   (`McTwinBoard.ws`) compares every call with it.
+- **Coil Gains (PR1; setting `cgain`, `cfg.coilGains`; in Misc. Optimizations; ULTRA, needs Window Scale, not
+  with Multi-coil Read or in the lab build):** `CoilGains.EmitScale` inside `ws_x` / `ws_y`, after the three stack
+  copies and before the stock call, while VB+0 = 0, the centre coil (`[sp+36]`) is 0..N and reads = S+5 - AGC delay
+  > 0: each line `((line - (FLOOR_A x reads + FLOOR_B)) x G_k) >> 8`, G_k from a 2 x 40 halfword table (coil k at
+  slot k + 2; Q12; `CoilGains.Table`), at `CoilGains.STRENGTH` = 589 per mille of the measured difference. C# copy
+  `CoilGains.Scale`; the twin's position-call check (`McTwinBoard.cg`, found by `CoilGains.Installed`) compares the
+  stock routine's arguments with it. CLI `--no-coil-gains`.
 - **R45-rc5 Dynamic Anti-Chatter (setting `dac`, `cfg.antiChatter`; paced presets; default on):** `dachat`, called
   with Bl after ALPI on the final position. Per axis d2 = p0 - 2 p1 + p2 from the two previous inputs (RAM DAC);
   over the threshold (0.10 mm, halved in report mode 2) out = p0 + ws (p1 - p0), ws = w x min(|d2| - thr, thr) / thr

@@ -2431,7 +2431,7 @@ namespace AnargonsTabletTools
             P.MakeDirs(folder);
             Build.LOG.SetFolder(folder);
             bool[] st = Defaults();
-            string[] off = new string[] { "boost", "reach", "longrange", "cal", "odd", "multicoil", "interp2", "blcounter", "volatile", "bootloader", "fhold", "chold", "systick", "tiltskip", "misc", "smatch", "wscale", "dac", "clin" };
+            string[] off = new string[] { "boost", "reach", "longrange", "cal", "odd", "multicoil", "interp2", "blcounter", "volatile", "bootloader", "fhold", "chold", "systick", "tiltskip", "misc", "smatch", "wscale", "dac", "clin", "cgain" };
             for (int i = 0; i < off.Length; i++) st[Build.SetIndex(off[i])] = false;
             Options o = new Options(); o.cleanup = true;
             string rts = P.PathJoin(folder, "return-to-stock.hex"), stock = P.PathJoin(folder, "stock-app.hex");
@@ -2491,12 +2491,13 @@ namespace AnargonsTabletTools
             + "  --no-frequency-hold  --no-coil-hold                switch Frequency Hold or Coil Hold off\n"
             + "  --no-timer-off         keep the bootloader's 1 ms timer running (stock; brings back ULTRA's noise bursts)\n"
             + "  --no-tilt-skip         measure tilt while hovering close too (stock; its frames shake 0.2-0.45 mm on Anargon's tablet)\n"
-            + "  --no-misc-optimizations  Misc. Optimizations off: no Switch Match, Window Scale, Coil Linearization or Dynamic Anti-Chatter\n"
-            + "  (one of the four off, Misc. Optimizations still on:)\n"
+            + "  --no-misc-optimizations  Misc. Optimizations off: no Switch Match, Window Scale, Coil Gains, Coil Linearization or Dynamic Anti-Chatter\n"
+            + "  (one of the five off, Misc. Optimizations still on:)\n"
             + "  --no-switch-match      no position match at coil-window and read-length switches (the cursor steps there)\n"
             + "  --no-window-scale      no pressure correction of the position inside a coil window (stock arithmetic)\n"
             + "  --no-anti-chatter      no Dynamic Anti-Chatter (it pulls a frame toward the last one only where the noise is over 0.10 mm, at most +0.4 ms)\n"
             + "  --no-coil-linearization  no Coil Linearization (a fixed correction of the position inside each coil, learned on Anargon's ruler lines; no delay)\n"
+            + "  --no-coil-gains        no Coil Gains (each coil's reading strength evened out before the position; ULTRA, with Window Scale; no delay)\n"
             + "  --no-accurate-pressure short frequency readings: more pressure updates, can show pressure while hovering\n"
             + "  --startup-calibration   Pen frequency tuning, EXPERIMENTAL (default off): press hard within 3 s of plugging in; keeps the steadiest scan frequency\n"
             + "  --no-cal               keep the stock scan frequency (also overrides --startup-calibration)\n"
@@ -2537,7 +2538,7 @@ namespace AnargonsTabletTools
             tabletApp = null; tabletFlash = null; tabletBuild = null; tabletModded = false;
             tabletState = null; dumpSkipped = false; bootRestoredByCrc = false;
             string infile = null, outfile = null, rate = null, smoothing = "off", interp = "on", speed = "uncapped";
-            bool all = false, keepB = false, noAccp = false, noBoost = false, noReach = false, noLong = false, multiCoil = false, noCal = false, startupCal = false, noOdd = false, noFhold = false, noChold = false, noSystick = false, noTiltSkip = false, noSmatch = false, smatchOn = false, noWscale = false, noMisc = false, dacOn = true, clOn = true, aggr = false, discreet = false, noVolatile = false, blChanges = false;
+            bool all = false, keepB = false, noAccp = false, noBoost = false, noReach = false, noLong = false, multiCoil = false, noCal = false, startupCal = false, noOdd = false, noFhold = false, noChold = false, noSystick = false, noTiltSkip = false, noSmatch = false, smatchOn = false, noWscale = false, noMisc = false, dacOn = true, clOn = true, cgOn = true, aggr = false, discreet = false, noVolatile = false, blChanges = false;
             bool bin = false, flash = false, dry = false, check = false, wizard = false, calibrate = false, calPass = false, compat = false;
             string calFile = null, apipFile = null, apipFilter = null;
             bool toStock = false, blc = false, noBlc = false, repair = false, arranger = false;
@@ -2588,6 +2589,8 @@ namespace AnargonsTabletTools
                     else if (P.Eq(a, "--no-anti-chatter")) dacOn = false;
                     else if (P.Eq(a, "--coil-linearization")) clOn = true;
                     else if (P.Eq(a, "--no-coil-linearization")) clOn = false;
+                    else if (P.Eq(a, "--coil-gains")) cgOn = true;
+                    else if (P.Eq(a, "--no-coil-gains")) cgOn = false;
                     else if (P.Eq(a, "--bin")) bin = true;
                     else if (P.Eq(a, "--flash")) flash = true;
                     else if (P.Eq(a, "--flash-dry-run")) dry = true;
@@ -2714,7 +2717,7 @@ namespace AnargonsTabletTools
                 bool[] st = Defaults();
                 st[Build.SetIndex("smoothing")] = P.Eq(smoothing, "on"); st[Build.SetIndex("interp")] = P.Eq(interp, "on"); st[Build.SetIndex("interp2")] = aggr;
                 st[Build.SetIndex("accp")] = !noAccp; st[Build.SetIndex("boost")] = !noBoost; st[Build.SetIndex("reach")] = !noReach; st[Build.SetIndex("longrange")] = !noLong;
-                st[Build.SetIndex("cal")] = startupCal && !noCal; st[Build.SetIndex("odd")] = !noOdd; st[Build.SetIndex("fhold")] = !noFhold; st[Build.SetIndex("chold")] = !noChold; st[Build.SetIndex("systick")] = !noSystick; st[Build.SetIndex("tiltskip")] = !noTiltSkip; st[Build.SetIndex("misc")] = !noMisc; st[Build.SetIndex("smatch")] = !noMisc && (smatchOn || !noSmatch); st[Build.SetIndex("wscale")] = !noMisc && !noWscale; st[Build.SetIndex("dac")] = !noMisc && dacOn; st[Build.SetIndex("clin")] = !noMisc && clOn; st[Build.SetIndex("multicoil")] = multiCoil; st[Build.SetIndex("volatile")] = !noVolatile; st[Build.SetIndex("bootloader")] = (blChanges || blc) && !discreet; st[Build.SetIndex("blcounter")] = blc;
+                st[Build.SetIndex("cal")] = startupCal && !noCal; st[Build.SetIndex("odd")] = !noOdd; st[Build.SetIndex("fhold")] = !noFhold; st[Build.SetIndex("chold")] = !noChold; st[Build.SetIndex("systick")] = !noSystick; st[Build.SetIndex("tiltskip")] = !noTiltSkip; st[Build.SetIndex("misc")] = !noMisc; st[Build.SetIndex("smatch")] = !noMisc && (smatchOn || !noSmatch); st[Build.SetIndex("wscale")] = !noMisc && !noWscale; st[Build.SetIndex("dac")] = !noMisc && dacOn; st[Build.SetIndex("clin")] = !noMisc && clOn; st[Build.SetIndex("cgain")] = !noMisc && cgOn; st[Build.SetIndex("multicoil")] = multiCoil; st[Build.SetIndex("volatile")] = !noVolatile; st[Build.SetIndex("bootloader")] = (blChanges || blc) && !discreet; st[Build.SetIndex("blcounter")] = blc;
                 // R45: --no-bootloader-counter removes an installed Bootloader Counter (needs bootloader writes)
                 if (noBlc && blc) throw new Stop("--bootloader-counter and --no-bootloader-counter cannot be combined.");
                 if (noBlc && discreet) throw new Stop("--no-bootloader-counter writes to the bootloader area, so it cannot be combined with --discreet.");

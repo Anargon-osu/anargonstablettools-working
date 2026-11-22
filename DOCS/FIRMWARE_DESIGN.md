@@ -533,6 +533,26 @@ Switch Match after it. It does not touch the smooth wave across each coil (0.16-
 cold reading, so there it adds a step instead; its check only proves that the firmware computes exactly what the C#
 copy (`WindowScale.Apply`) computes. *(hardware recordings offline; twin)*
 
+**Coil Gains (PR1).** The stock arithmetic that works out the position inside the five-coil window uses only
+differences and ratios of the five line readings, so it assumes every coil picks up the pen equally strongly. On
+Anargon's tablet they do not. Fitted on the raw line readings of the R43 stroke recordings (pen touching, each frame's
+pen offset and signal fitted together with one strength per coil, one per window line and one shared response
+shape), the X coils differ by 1.2 % (standard deviation) and the Y coils by 0.7 %, the same in every recording and
+along the whole length of each coil; on X a strong / weak pair comes back every 8 coils (10 / 11, 18 / 19, 26 / 27).
+A coil that reads 1 % strong pulls the position in the windows next to it by about 0.03 mm, so a slanted line bends
+coil by coil. This is the 0.04-0.07 mm slanted-line error that Coil Linearization (one table for every coil) cannot
+remove. The setting runs inside Window Scale's routine, before the stock routine is called: each of the five line
+readings has the electronic floor taken out (the same floor as Multi-coil Read: a constant per read sample) and is
+multiplied by its coil's correction from a table of 40 entries per axis (`4096 / gain`, Q12), and the result is
+shifted so it keeps 4 more bits. The stock arithmetic is the same; only the inputs are evened out. It acts only in
+the fast stage and only at ULTRA (where the gains were measured), keeps nothing between frames and costs about 30
+instructions per axis. On the tablet the firmware removed exactly the predicted error (with minus without on one
+ruler line: r 0.83-0.87 against the prediction), but the size of the coil error in the cursor changed from session
+to session (from almost none to 2.4 times the measured one), so the table is applied at 58.9 % of the measured
+difference: the strength, in 0.1 % steps, that lowers the worst of the four recorded sessions most (each session
+keeps 0.78-0.91 of its error, none is made worse). On the tablet at 60 % the error that repeats on every pass of a
+slanted line fell from 0.021 to 0.009 mm. *(hardware recordings offline; hardware, cursor; twin)*
+
 **Dynamic Anti-Chatter (R45-rc5).** Even while the pen moves smoothly, a single frame now and then lands a little
 off its path: one noisy reading, seen as "chatter". Dynamic Anti-Chatter looks at each new position together with
 the two before it. If the pen moved in a straight line at a steady speed, the new position would continue the line
@@ -561,9 +581,9 @@ on Y. The table in use (table B) was learned again on those three lines; on a la
 it left 0.088 / 0.059 mm (sd, forward / back) against 0.107 / 0.073 for the first table. The table belongs to one
 tablet and pen (measured at ULTRA), so on another tablet it may help less. *(hardware, cursor)*
 
-**Misc. Optimizations (R45).** Switch Match, Window Scale, Coil Linearization and Dynamic Anti-Chatter are one
-setting, on by default; in the firmware the order is Switch Match > Coil Linearization > ALPI > Dynamic Anti-Chatter,
-with Window Scale inside the stock position routine. Anargon's tablet chose it: a 20-minute osu! session with the
+**Misc. Optimizations (R45).** Switch Match, Window Scale, Coil Gains (added in PR1), Coil Linearization and
+Dynamic Anti-Chatter are one setting, on by default; in the firmware the order is Switch Match > Coil Linearization >
+ALPI > Dynamic Anti-Chatter, with Window Scale and Coil Gains inside the stock position routine. Anargon's tablet chose it: a 20-minute osu! session with the
 Filter Arranger switching the order at pen lifts, then a ruler session (`experiments/precision/RESULTS.md`). Jump
 Rejection (3.0x the flicks) and Hull Mark + Hull Clamp (4.9x) failed there and are left out. *(hardware)*
 

@@ -1,9 +1,34 @@
-## R45 (current) - read first
+## PR1: Coil Gains (branch `coilswitch-hotfix`; R46 / V1.1 once merged) - read first
 
 <img src="misc/AIdisclosure-most_docs.png" align="right" width="280" alt="Note: This document is mostly AI generated, with only minor corrections done by a human (stated to the AI).">
 
+Claude Opus 5.5 (Anthropic), 2026-11-22, on the V1.0 source. Pull request PR1; merged, the project becomes R46 (V1.1)
+(AGENTS.md section 4). Full record: `history/claude-pr1.md`. Analysis scripts and recordings: `Claude-workarea/experiments/precision` (coilgain*.py,
+coilk.py, coilpk.py, coildir.py, coilzone.py, coilruler.py, coilstrength.py, coiltune.py, coilba.py) and
+`Claude-workarea/rev-output/hw45/coilgain` (ab = 100 % test, ab60 = 60 % test).
+
+- **The slanted-line error is each coil's own reading strength** (Anargon: slanted lines keep 0.04-0.07 mm, up to
+  0.45 mm p-p). Fitted on the R43 strokes' raw line sums: X coils differ 1.2 % sd (a strong / weak pair every 8
+  coils: 10 / 11, 18 / 19, 26 / 27), Y 0.7 %; the same along each coil (three zones r 0.90-0.96) and between
+  recordings. Per-coil centres and effective ranges predict nothing. Gains learned from the 11-13 / 16 / 17 ruler lines
+  match the strokes' (X r 0.92, Y r 0.84). *(hardware recordings offline)*
+- **Coil Gains** (`atf_coilgain.cs`, `cgain`, in Misc. Optimizations, default on; ULTRA, needs Window Scale, not with
+  Multi-coil Read or in the lab build): inside `ws_x` / `ws_y` each line `((line - floor) x G_k) >> 8` before the
+  stock routine. Twin: the stock routine's arguments equal the C# copy on every call; `--no-coil-gains` gives the V1.0
+  image byte for byte (build id aside); other presets unchanged; 528 regression checks pass with both dumps. *(twin)*
+- **On the tablet it takes off exactly the predicted error, but the size of that error changes by session**: 0.7-2.4
+  x the prediction on 11-13 / 16 / 17, almost none to 0.6 x on 11-22. At 100 % that day it over-corrected (fixed error
+  0.031 -> 0.044 mm on one line); at 60 % (applied 0.65 x) fixed 0.021 -> 0.009 mm, real 0.037 -> 0.017 mm on a 30 deg
+  line. Not explained by pressure, a filter lag between the pass directions, tilt or position along the coil.
+  Strength 58.9 % (`CoilGains.STRENGTH` = 589 per mille): in 0.1 % steps the lowest worst session (each 0.78-0.91 of
+  its error, none worse); the lowest mean (78.6 %) would have made 11-22 worse when that session was held out. Left:
+  why the size changes between sessions; a hover measurement (the gains were fitted with the pen touching).
+  *(hardware, cursor; recordings offline)*
+
+## R45 - read next
+
 R45 (Claude Opus 5.5, Anthropic) is the last planned revision before the project goes public; everything is in
-R45-rc6. After R45 a revision is named after its pull request, `PR #X` (AGENTS.md section 4). Full record: `history/claude-rev45.md`; data and tools in `Claude-workarea/rev-output/hw45` and
+R45-rc6. After R45 each delivery is a pull request (PR1, PR2, ...) and each merge is the next revision (PR1 -> R46; AGENTS.md section 4). Full record: `history/claude-rev45.md`; data and tools in `Claude-workarea/rev-output/hw45` and
 `Claude-workarea/experiments/noise45`. Findings:
 
 - **R45-rc5 (4): Misc. Optimizations, from Anargon's tablet sessions** (`Claude-workarea/experiments/precision/RESULTS.md`).

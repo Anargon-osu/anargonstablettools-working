@@ -2,6 +2,24 @@
 
 <img src="../misc/AIdisclosure-most_docs.png" align="right" width="280" alt="Note: This document is mostly AI generated, with only minor corrections done by a human (stated to the AI).">
 
+## PR1: Coil Gains (branch `coilswitch-hotfix`; R46 / V1.1 once merged)
+
+- **Coil Gains, a new part of Misc. Optimizations** (setting `cgain`, tag `CG`, default on; ULTRA, needs Window
+  Scale, not with Multi-coil Read). Each coil of Anargon's tablet reads the pen a little stronger or weaker than the
+  next (X 1.2 %, Y 0.7 %, fitted on the R43 strokes), which bent slanted lines coil by coil (0.04-0.07 mm). Before
+  the tablet's own position arithmetic runs, each of the five line readings has the floor taken out and is scaled by
+  its coil's correction, at 58.9 % of the measured difference. No delay, nothing kept between frames.
+- **Measured:** on the tablet at 60 %, the slanted-line error that repeats on every pass fell from 0.021 to 0.009 mm
+  (30 deg line, 70 mm, against V1.0 on the same ruler position); offline at 58.9 %, 6-25 % came off every recorded
+  ruler line but one (2026-11-13 to 11-22). At 100 % it over-corrected on 2026-11-22: how much of the coil
+  difference shows in the cursor changed between sessions, so 58.9 % is the strength that lowers the worst session
+  most without making any worse.
+- `--no-coil-gains` turns it off; with it off the ULTRA build is the V1.0 build byte for byte (build id aside), and
+  the other presets do not change.
+- Checks: digital twin (all five presets, the position-call check compares the stock routine's arguments with the C#
+  copy), 528 regression checks with the February and December dumps, two A/B ruler tests on the tablet (100 % and
+  60 %).
+
 ## R45-rc6
 
 - **The Bootloader Counter toggle finds the counter on the tablet** (Anargon: scan for it, on if found, off if not,

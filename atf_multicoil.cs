@@ -59,6 +59,8 @@ namespace AnargonsTabletTools
         public long from = long.MaxValue;
         public bool installed, full, ws;          // ws: R45-rc4 (2) Window Scale on the position calls instead
         public bool wsLab;                        // the Filter Arranger build: a RAM flag can switch Window Scale off (atf_lab.cs)
+        public bool cg;                           // Coil Gains (atf_coilgain.cs): Window Scale's wrapper scales the lines first
+        int[] exp = new int[5];                   // the lines the stock routine should get (scaled with Coil Gains)
         public int retX, retY;
         McResult res;
         double vx = 0.0031, vy = 0.0023;
@@ -80,6 +82,8 @@ namespace AnargonsTabletTools
                 pk = mc.Peek((axis == 0 ? Sched.XBUF : Sched.YBUF) + 108, 1);
                 reads = mc.Peek(Sched.S_ADDR + 5, 1) - mc.Peek(Sched.AGC + 1 + axis, 1);
                 pres = mc.Peek(Sched.PRESSURE + 6, 2); stage = mc.Peek(Sched.VB_ADDR, 1);
+                if (cg) exp = CoilGains.Scale(axis, arg, arg[5], reads, full, stage);
+                else for (int i = 0; i < 5; i++) exp[i] = arg[i];
                 inCall = true; stockRan = false; stockSame = false; stockArgs = false; stockDone = false; t0 = mc.cpu.cycles;
                 return false;
             }
@@ -97,8 +101,9 @@ namespace AnargonsTabletTools
                 stockRan = true;
                 stockSame = sp == spCall && mc.Peek(sp, 4) == arg[4] && mc.Peek(sp + 4, 4) == arg[5] && mc.Peek(sp + 8, 4) == MultiCoil.W
                     && (mc.cpu.r[14] & ~1) == (axis == 0 ? retX : retY);
-                stockArgs = mc.Peek(sp, 4) == arg[4] && mc.Peek(sp + 4, 4) == arg[5] && mc.Peek(sp + 8, 4) == MultiCoil.W;
-                for (int i = 0; i < 4; i++) if (mc.cpu.r[i] != arg[i]) { stockSame = false; stockArgs = false; }
+                stockArgs = mc.Peek(sp, 4) == exp[4] && mc.Peek(sp + 4, 4) == arg[5] && mc.Peek(sp + 8, 4) == MultiCoil.W;
+                for (int i = 0; i < 4; i++) if (mc.cpu.r[i] != arg[i]) stockSame = false;
+                for (int i = 0; i < 4; i++) if (mc.cpu.r[i] != exp[i]) stockArgs = false;
                 if (ws) mc.SetHook(mc.cpu.r[14] & ~1, H_SR);       // where it returns into ws_x / ws_y
                 return false;
             }
@@ -116,7 +121,7 @@ namespace AnargonsTabletTools
                     // keeps an earlier value; 3392 of 200000 random line sets), and a frame like that once failed the
                     // ULTRA gate (X lines 186,1088,1137,1190,868 centre 10: stock 2799, copy -2799). The stock
                     // routine is XP-Pen's own, unchanged; the copy is still used if its answer was not seen.
-                    int st = stockDone ? stockOut : MultiCoil.Stock(arg[0], arg[1], arg[2], arg[3], arg[4], arg[5]);
+                    int st = stockDone ? stockOut : MultiCoil.Stock(exp[0], exp[1], exp[2], exp[3], exp[4], arg[5]);
                     int wv = WindowScale.Apply(axis, st, arg[5], pres, stage), gv = mc.cpu.r[0];
                     if (wsLab && (mc.Peek(Lab.RAM + Lab.ACTF, 1) & Lab.F_WS_OFF) != 0) { wv = st; res.labOff++; }   // switched off in RAM
                     bool wok = stockRan && stockArgs && stockDone && gv == wv;
@@ -484,7 +489,7 @@ namespace AnargonsTabletTools
                 pen.x = 9.3; pen.y = 6.6; pen.f0 = 505000; pen.Q = 150; pen.strength = 60000;
                 pen.hasHeight = true; pen.height = heights[hi]; pen.resonator = true; pen.integrate = true;
                 McTwinBoard b = new McTwinBoard(pen, res);
-                b.installed = inst; b.full = full; b.retX = cx + 4; b.retY = cy + 4; b.ws = WindowScale.Installed(flash); b.wsLab = b.ws && Lab.WsGated(flash);
+                b.installed = inst; b.full = full; b.retX = cx + 4; b.retY = cy + 4; b.ws = WindowScale.Installed(flash); b.wsLab = b.ws && Lab.WsGated(flash); b.cg = CoilGains.Installed(flash);
                 Machine mc = new Machine(flash, true, b, false);
                 mc.SetHook(cx, McTwinBoard.H_CX); mc.SetHook(cx + 4, McTwinBoard.H_RX); mc.SetHook(cy, McTwinBoard.H_CY); mc.SetHook(cy + 4, McTwinBoard.H_RY);
                 mc.SetHook(fn, McTwinBoard.H_ST);

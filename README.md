@@ -231,7 +231,7 @@ differs from its default.
 
 | Setting | Default | Tag | What it does | Trade-off |
 |---|:-:|---|---|---|
-| **Misc. Optimizations** | on | `MO` | Switch Match, Window Scale (ULTRA), Coil Linearization and Dynamic Anti-Chatter, together. | Up to 0.4 ms of delay on the frames Dynamic Anti-Chatter pulls back (about 0.1 ms on average). Coil Linearization is tuned on one tablet and pen, and is slightly less accurate at hover. |
+| **Misc. Optimizations** | on | `MO` | Switch Match, Window Scale (ULTRA), Coil Gains (ULTRA), Coil Linearization and Dynamic Anti-Chatter, together. | Up to 0.4 ms of delay on the frames Dynamic Anti-Chatter pulls back (about 0.1 ms on average). Coil Gains and Coil Linearization are tuned on one tablet and pen, and Coil Linearization is slightly less accurate at hover. |
 
 #### Position filters
 
@@ -283,12 +283,17 @@ differs from its default.
 |---|---|---|
 | Switch Match | `SWM` | Removes the cursor step when the pen crosses into the next coil window (not while the pen is still). |
 | Window Scale | `WS` | Corrects the stretch of the position inside a coil window, by pressure (ULTRA). |
+| Coil Gains | `CG` | Evens out how strongly each coil reads before the position is worked out (ULTRA, needs Window Scale). Set to 58.9 % of the measured difference. No delay. |
 | Coil Linearization | `CL` | A fixed correction of the position inside each coil, learned along a ruler. No delay. |
 | Dynamic Anti-Chatter | `DAC` | Pulls a frame back only where the noise is over 0.10 mm. |
 
-Order in the firmware: Switch Match > Coil Linearization > ALPI > Dynamic Anti-Chatter. Measured on a Deco 640 (ULTRA
-with ALPI, along a ruler): 0.02-0.04 mm of error left along an axis, 0.06-0.09 mm on a slanted line. Each part can
-be turned off on its own on the command line.
+Order in the firmware: Switch Match > Coil Linearization > ALPI > Dynamic Anti-Chatter; Window Scale and Coil Gains
+work inside the tablet's own position routine. Measured on a Deco 640 (ULTRA with ALPI, along a ruler): 0.02-0.04 mm
+of error left along an axis, 0.06-0.09 mm on a slanted line without Coil Gains. Coil Gains on the same tablet: the
+slanted-line error that repeats on every pass fell from 0.021 to 0.009 mm (at 60 %), and 6-25 % of the error came off
+every recorded ruler line but one (offline, at 58.9 %). How much of the coil difference shows changed between
+sessions there (from almost none to 2.4 x the measured one), so another tablet may gain less. Each part can be turned off on its own on the command
+line.
 
 </details>
 
@@ -407,7 +412,7 @@ AnargonsTabletTools --compat main.bin
 | `--flash` / `--flash-dry-run` | backs up and flashes one tested build / prints the commands only |
 | `--calibrate`, `--calibration FILE`, `--apip FILE` | calibration (see [Calibration](#calibration)) |
 | `--no-misc-optimizations` | Misc. Optimizations off |
-| `--no-switch-match`, `--no-window-scale`, `--no-coil-linearization`, `--no-anti-chatter` | one part of Misc. Optimizations off |
+| `--no-switch-match`, `--no-window-scale`, `--no-coil-gains`, `--no-coil-linearization`, `--no-anti-chatter` | one part of Misc. Optimizations off |
 | `--no-frequency-hold`, `--no-coil-hold`, `--no-timer-off`, `--no-tilt-skip`, `--no-accurate-pressure` | one coil-reading setting off |
 | `--no-boost`, `--no-reach`, `--no-longrange`, `--no-odd` | Steady Hover, Reach Stage, Long-range Pickup or Jump Rejection off |
 | `--interp on\|off`, `--smoothing on\|off`, `--aggressive-interp` | position filters |
